@@ -14,8 +14,16 @@ summary: |
 containers:
   wordpress:
     resource: wordpress-image
+    mounts:
+      - storage: webroot
+        location: /var/www/html
 
 resources:
   wordpress-image:
     type: oci-image
     description: OCI image for wordpress (wordpress)
+
+storage:
+  webroot:
+    type: filesystem
+    location: /var/www/html
