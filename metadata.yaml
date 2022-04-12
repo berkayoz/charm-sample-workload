@@ -27,3 +27,7 @@ storage:
   webroot:
     type: filesystem
     location: /var/www/html
+
+requires:
+  mysql:
+    interface: mysql
