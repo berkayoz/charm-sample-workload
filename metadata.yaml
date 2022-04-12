@@ -4,20 +4,18 @@
 # For a complete list of supported options, see:
 # https://juju.is/docs/sdk/metadata-reference
 name: sample-workload
-display-name: |
-  TEMPLATE-TODO: fill out a display name for the Charmcraft store
+display-name: sample-workload
 description: |
-  TEMPLATE-TODO: fill out the charm's description
+  Commodo velit esse dolore deserunt voluptate aliqua. Incididunt proident cupidatat sunt voluptate minim cupidatat esse sunt. 
+  Elit exercitation culpa anim voluptate excepteur ea magna laborum sit amet adipisicing pariatur voluptate exercitation.
 summary: |
-  TEMPLATE-TODO: fill out the charm's summary
+  A sample workload running wordpress.
 
-# TEMPLATE-TODO: replace with containers for your workload (delete for non-k8s)
 containers:
-  httpbin:
-    resource: httpbin-image
+  wordpress:
+    resource: wordpress-image
 
-# TEMPLATE-TODO: each container defined above must specify an oci-image resource
 resources:
-  httpbin-image:
+  wordpress-image:
     type: oci-image
-    description: OCI image for httpbin (kennethreitz/httpbin)
+    description: OCI image for wordpress (wordpress)
