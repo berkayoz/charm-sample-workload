@@ -15,9 +15,8 @@ develop a new k8s charm using the Operator Framework:
 import logging
 
 from ops.charm import CharmBase
-from ops.framework import StoredState
 from ops.main import main
-from ops.model import ActiveStatus
+from ops.model import ActiveStatus, WaitingStatus
 
 logger = logging.getLogger(__name__)
 
@@ -25,14 +24,11 @@ logger = logging.getLogger(__name__)
 class SampleWorkloadCharm(CharmBase):
     """Charm the service."""
 
-    _stored = StoredState()
-
     def __init__(self, *args):
         super().__init__(*args)
         self.framework.observe(self.on.wordpress_pebble_ready, self._on_wordpress_pebble_ready)
         self.framework.observe(self.on.config_changed, self._on_config_changed)
         self.framework.observe(self.on.fortune_action, self._on_fortune_action)
-        self._stored.set_default(things=[])
 
     def _on_wordpress_pebble_ready(self, event):
         """Define and start a workload using the Pebble API.
@@ -47,19 +43,7 @@ class SampleWorkloadCharm(CharmBase):
         # Get a reference the container attribute on the PebbleReadyEvent
         container = event.workload
         # Define an initial Pebble layer configuration
-        pebble_layer = {
-            "summary": "wordpress layer",
-            "description": "pebble config layer for wordpress",
-            "services": {
-                "wordpress": {
-                    "override": "replace",
-                    "summary": "wordpress",
-                    "command": "docker-entrypoint.sh apache2-foreground",
-                    "startup": "enabled",
-                    "environment": {"thing": self.model.config["thing"]},
-                }
-            },
-        }
+        pebble_layer = self._wordpress_layer()
         # Add initial Pebble config layer using the Pebble API
         container.add_layer("wordpress", pebble_layer, combine=True)
         # Autostart any services that were defined with startup: enabled
@@ -68,20 +52,43 @@ class SampleWorkloadCharm(CharmBase):
         # https://juju.is/docs/sdk/constructs#heading--statuses
         self.unit.status = ActiveStatus()
 
+    def _wordpress_layer(self):
+        return {
+            "summary": "wordpress layer",
+            "description": "pebble config layer for wordpress",
+            "services": {
+                "wordpress": {
+                    "override": "replace",
+                    "summary": "wordpress",
+                    "command": "docker-entrypoint.sh apache2-foreground",
+                    "startup": "enabled",
+                    "environment": {"WP_DEBUG": self.model.config["wp-debug"]},
+                }
+            },
+        }
+
     def _on_config_changed(self, _):
-        """Just an example to show how to deal with changed configuration.
+        """Handle the config-changed event"""
+        # Get the gosherve container so we can configure/manipulate it
+        container = self.unit.get_container("wordpress")
+        # Create a new config layer
+        layer = self._wordpress_layer()
 
-        TEMPLATE-TODO: change this example to suit your needs.
-        If you don't need to handle config, you can remove this method,
-        the hook created in __init__.py for it, the corresponding test,
-        and the config.py file.
-
-        Learn more about config at https://juju.is/docs/sdk/config
-        """
-        current = self.config["thing"]
-        if current not in self._stored.things:
-            logger.debug("found a new thing: %r", current)
-            self._stored.things.append(current)
+        if container.can_connect():
+            # Get the current config
+            services = container.get_plan().to_dict().get("services", {})
+            # Check if there are any changes to services
+            if services != layer["services"]:
+                # Changes were made, add the new layer
+                container.add_layer("wordpress", layer, combine=True)
+                logging.info("Added updated layer 'wordpress' to Pebble plan")
+                # Restart it and report a new status to Juju
+                container.restart("wordpress")
+                logging.info("Restarted wordpress service")
+            # All is well, set an ActiveStatus
+            self.unit.status = ActiveStatus()
+        else:
+            self.unit.status = WaitingStatus("waiting for Pebble in workload container")
 
     def _on_fortune_action(self, event):
         """Just an example to show how to receive actions.
