@@ -29,12 +29,20 @@ class SampleWorkloadCharm(CharmBase):
 
     def __init__(self, *args):
         super().__init__(*args)
-        self.framework.observe(self.on.wordpress_pebble_ready, self._on_wordpress_pebble_ready)
+        self.framework.observe(
+            self.on.wordpress_pebble_ready, self._on_wordpress_pebble_ready
+        )
         self.framework.observe(self.on.config_changed, self._on_config_changed)
         self.framework.observe(self.on.fortune_action, self._on_fortune_action)
-        self.framework.observe(self.on.mysql_relation_changed, self._on_mysql_relation_changed)
-        self.framework.observe(self.on.mysql_relation_broken, self._on_mysql_relation_broken)
-        self._stored.set_default(db_config={"name": "", "host": "", "password": "", "user": ""})
+        self.framework.observe(
+            self.on.mysql_relation_changed, self._on_mysql_relation_changed
+        )
+        self.framework.observe(
+            self.on.mysql_relation_broken, self._on_mysql_relation_broken
+        )
+        self._stored.set_default(
+            db_config={"name": "", "host": "", "password": "", "user": ""}
+        )
 
     def _on_wordpress_pebble_ready(self, event):
         """Define and start a workload using the Pebble API.
@@ -73,8 +81,8 @@ class SampleWorkloadCharm(CharmBase):
                         "WP_DATABASE_HOST": self._stored.db_config["host"],
                         "WP_DATABASE_USER": self._stored.db_config["user"],
                         "WP_DATABASE_PASSWORD": self._stored.db_config["password"],
-                        "WP_DATABASE_NAME": self._stored.db_config["name"]
-                        },
+                        "WP_DATABASE_NAME": self._stored.db_config["name"],
+                    },
                 }
             },
         }
@@ -111,15 +119,19 @@ class SampleWorkloadCharm(CharmBase):
             host = event.relation.data[event.unit].get("host")
             password = event.relation.data[event.unit].get("password")
             user = event.relation.data[event.unit].get("user")
-            self._stored.db_config.update({"name": database, "host": host, "password": password, "user": user})
-        
+            self._stored.db_config.update(
+                {"name": database, "host": host, "password": password, "user": user}
+            )
+
             logger.info("New database configuration {}".format(self._stored.db_config))
- 
+
         self._on_config_changed(event)
 
     def _on_mysql_relation_broken(self, event: RelationBrokenEvent) -> None:
         # Remove the unit data from local state
-        self._stored.db_config.update({"name": "", "host": "", "password": "", "user": ""})
+        self._stored.db_config.update(
+            {"name": "", "host": "", "password": "", "user": ""}
+        )
         # Do something
         self._on_config_changed(event)
 
@@ -137,7 +149,9 @@ class SampleWorkloadCharm(CharmBase):
         if fail:
             event.fail(fail)
         else:
-            event.set_results({"fortune": "A bug in the code is worth two in the documentation."})
+            event.set_results(
+                {"fortune": "A bug in the code is worth two in the documentation."}
+            )
 
 
 if __name__ == "__main__":
